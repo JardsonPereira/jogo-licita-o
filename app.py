@@ -1,101 +1,51 @@
-import streamlit as st
-import random
 import time
 
-# Configuração da página
-st.set_page_config(page_title="Leilão Tycoon", page_icon="🎮")
+def jogar_licitacao():
+    pontuacao = 0
+    perguntas = [
+        {
+            "pergunta": "Qual modalidade é obrigatória para aquisição de bens e serviços comuns?",
+            "opcoes": ["A) Concorrência", "B) Pregão", "C) Diálogo Competitivo", "D) Leilão"],
+            "resposta": "B"
+        },
+        {
+            "pergunta": "Na nova lei, qual critério de julgamento NÃO é permitido?",
+            "opcoes": ["A) Menor Preço", "B) Técnica e Preço", "C) Maior Desconto", "D) Maior Preço para Venda"],
+            "resposta": "D"
+        },
+        {
+            "pergunta": "Qual fase vem imediatamente antes da fase de lances na licitação?",
+            "opcoes": ["A) Edital", "B) Homologação", "C) Análise de Propostas", "D) Habilitação"],
+            "resposta": "C"
+        }
+    ]
 
-# --- INICIALIZAÇÃO DO ESTADO DO JOGO ---
-if 'carteira' not in st.session_state:
-    st.session_state.carteira = 5000.0
-if 'inventario' not in st.session_state:
-    st.session_state.inventario = []
-if 'lance_atual' not in st.session_state:
-    st.session_state.lance_atual = 0.0
-if 'vencedor_atual' not in st.session_state:
-    st.session_state.vencedor_atual = "Ninguém"
-if 'item_atual' not in st.session_state:
-    st.session_state.item_atual = {"nome": "Quadro Antigo", "base": 500.0}
-if 'log' not in st.session_state:
-    st.session_state.log = []
-if 'game_over' not in st.session_state:
-    st.session_state.game_over = False
+    print("--- ⚖️  BEM-VINDO AO SIMULADOR DE LICITAÇÕES ⚖️  ---")
+    print("Responda corretamente para ganhar pontos e aprender sobre a Lei 14.133!\n")
 
-# --- LÓGICA DOS BOTS ---
-def lance_do_bot():
-    # Bots só dão lance se não forem os vencedores atuais
-    if st.session_state.vencedor_atual != "Bot Estratégico":
-        limite_bot = st.session_state.item_atual["base"] * 2.5
-        if st.session_state.lance_atual < limite_bot:
-            incremento = random.choice([50, 100, 150])
-            st.session_state.lance_atual += incremento
-            st.session_state.vencedor_atual = "Bot Estratégico"
-            st.session_state.log.insert(0, f"🤖 Bot deu um lance de R$ {st.session_state.lance_atual}")
-
-# --- INTERFACE ---
-st.title("🎮 Leilão Tycoon: O Jogo")
-
-# Status do Jogador
-st.sidebar.header("👤 Perfil do Jogador")
-st.sidebar.metric("Sua Carteira", f"R$ {st.session_state.carteira:.2f}")
-st.sidebar.subheader("📦 Seus Itens")
-for item in st.session_state.inventario:
-    st.sidebar.write(f"- {item}")
-
-if not st.session_state.game_over:
-    st.header(f"Item em leilão: {st.session_state.item_atual['nome']}")
-    st.subheader(f"Preço Base: R$ {st.session_state.item_atual['base']:.2f}")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric("Lance Mais Alto", f"R$ {st.session_state.lance_atual:.2f}", 
-                  delta=f"Vencedor: {st.session_state.vencedor_atual}", delta_color="normal")
-    
-    with col2:
-        novo_lance = st.number_input("Quanto deseja oferecer?", 
-                                     min_value=st.session_state.lance_atual + 10.0, 
-                                     step=50.0)
+    for i, q in enumerate(perguntas):
+        print(f"Pergunta {i+1}: {q['pergunta']}")
+        for opcao in q['opcoes']:
+            print(opcao)
         
-        if st.button("🔨 DAR LANCE!"):
-            if novo_lance <= st.session_state.carteira:
-                st.session_state.lance_atual = novo_lance
-                st.session_state.vencedor_atual = "Você"
-                st.session_state.log.insert(0, f"✅ Você deu um lance de R$ {novo_lance}")
-                # Simular reação imediata do bot
-                time.sleep(0.5)
-                lance_do_bot()
-                st.rerun()
-            else:
-                st.error("Dinheiro insuficiente!")
-
-    # Botões de ação do jogo
-    if st.button("Finalizar e Reivindicar"):
-        if st.session_state.vencedor_atual == "Você":
-            st.success(f"Parabéns! Você comprou o {st.session_state.item_atual['nome']}!")
-            st.session_state.carteira -= st.session_state.lance_atual
-            st.session_state.inventario.append(st.session_state.item_atual['nome'])
-            st.balloons()
+        resposta_usuario = input("Sua resposta (A/B/C/D): ").upper()
+        
+        if resposta_usuario == q['resposta']:
+            print("✅ Correto! Você conhece as regras.\n")
+            pontuacao += 10
         else:
-            st.error("Você não é o vencedor atual!")
-        
-        # Próximo item
-        st.session_state.item_atual = random.choice([
-            {"nome": "Vaso da Dinastia Ming", "base": 1200.0},
-            {"nome": "Primeira Edição HQ", "base": 300.0},
-            {"nome": "Carro Clássico 1960", "base": 3000.0}
-        ])
-        st.session_state.lance_atual = st.session_state.item_atual["base"]
-        st.session_state.vencedor_atual = "Ninguém"
-        st.rerun()
+            print(f"❌ Errado! A resposta correta era {q['resposta']}.\n")
+        time.sleep(1)
 
-    # Log de Eventos
-    st.divider()
-    st.subheader("📝 Histórico da Rodada")
-    for msg in st.session_state.log[:5]:
-        st.write(msg)
+    print(f"--- 🏁 FIM DE JOGO! 🏁 ---")
+    print(f"Sua pontuação final: {pontuacao}/{len(perguntas)*10}")
+    
+    if pontuacao == len(perguntas)*10:
+        print("Parabéns! Você é um verdadeiro Pregoeiro!")
+    elif pontuacao >= 10:
+        print("Bom trabalho! Continue estudando a Lei 14.133.")
+    else:
+        print("Precisa estudar mais sobre os editais!")
 
-else:
-    st.error("Fim de Jogo!")
-    if st.button("Reiniciar"):
-        st.session_state.clear()
-        st.rerun()
+# Iniciar o jogo
+jogar_licitacao()
