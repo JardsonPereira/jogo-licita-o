@@ -1,34 +1,49 @@
 import streamlit as st
 import random
 
-# 1. Configuração da Página
-st.set_page_config(page_title="Licitas-Minado: Auditoria 2.0", page_icon="🕵️", layout="centered")
+# 1. Configuração da Página e Favicon
+st.set_page_config(page_title="Licitas-Minado Pro", page_icon="⚖️", layout="wide")
 
-# 2. Estilo CSS Customizado
+# 2. CSS Avançado para Interatividade
 st.markdown("""
     <style>
-    .stButton>button { width: 100%; height: 3.5em; font-size: 20px; font-weight: bold; }
-    .error-container { 
-        background-color: #ff4b4b; color: white; padding: 20px; border-radius: 15px; 
-        text-align: center; margin-bottom: 20px; border: 2px solid #b22222; 
+    /* Estilização dos botões/pastas */
+    .stButton>button {
+        width: 100%;
+        height: 4.5em;
+        font-size: 24px !important;
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+        background-color: #ffffff;
     }
-    .success-info {
-        background-color: #28a745; color: white; padding: 15px; border-radius: 10px;
-        text-align: center; margin-bottom: 20px; border: 1px solid #1e7e34;
+    .stButton>button:hover {
+        border-color: #007bff;
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    .win-container {
-        background-color: #ffc107; color: black; padding: 25px; border-radius: 15px;
-        text-align: center; margin-bottom: 20px; font-weight: bold;
+    
+    /* Banners de feedback */
+    .status-card {
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+        text-align: center;
+        animation: fadeIn 0.5s ease-in;
     }
-    .start-screen {
-        text-align: center; padding: 50px; background-color: #f0f2f6; border-radius: 20px;
+    .error-bg { background-color: #ffebee; border: 2px solid #ff1744; color: #b71c1c; }
+    .success-bg { background-color: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; }
+    .win-bg { background-color: #fff9c4; border: 2px solid #fbc02d; color: #f57f17; }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Definições de Conteúdo Educativo
+# 3. Definições de Conteúdo (Mantidas conforme solicitado)
 TAMANHO = 5
-
 ERROS_DETALHES = {
     "Superfaturamento": "Preços fixados acima do valor de mercado para desviar recursos.",
     "Direcionamento": "Edital com cláusulas que favorecem apenas um licitante específico.",
@@ -54,15 +69,13 @@ PRINCIPIOS_DETALHES = {
     "Julgamento Objetivo": "A escolha do vencedor deve seguir critérios claros e sem subjetividade."
 }
 
-# 4. Função para Iniciar/Reiniciar e Embaralhar
+# 4. Lógica de Inicialização
 def preparar_tabuleiro():
     bombas = list(ERROS_DETALHES.keys())
     principios_sorteados = random.sample(list(PRINCIPIOS_DETALHES.keys()), 10)
-    
     conteudo = principios_sorteados + bombas
     while len(conteudo) < TAMANHO * TAMANHO:
         conteudo.append("Documento OK")
-    
     random.shuffle(conteudo)
     
     st.session_state['tabuleiro'] = [conteudo[i:i+TAMANHO] for i in range(0, len(conteudo), TAMANHO)]
@@ -82,7 +95,6 @@ def clicar_casa(r, c):
     if item in ERROS_DETALHES:
         st.session_state['game_over'] = True
         st.session_state['erro_fatal'] = item
-        st.session_state['ultimo_acerto'] = ""
     elif item in PRINCIPIOS_DETALHES:
         st.session_state['score'] += 20
         st.session_state['ultimo_acerto'] = item
@@ -93,77 +105,22 @@ def clicar_casa(r, c):
     if st.session_state['score'] >= 150:
         st.session_state['vitoria'] = True
 
-# --- FLUXO PRINCIPAL DO APP ---
+# --- FLUXO DE INTERFACE ---
 
-# TELA DE INÍCIO
 if 'jogo_iniciado' not in st.session_state:
-    st.markdown("""
-        <div class="start-screen">
-            <h1>🕵️ Bem-vindo ao Licitas-Minado</h1>
-            <p style="font-size: 1.2em;">Você assume o papel de um <b>Auditor de Controle Interno</b>.</p>
-            <p>Sua missão é validar as pastas do processo licitatório encontrando princípios fundamentais.</p>
-            <hr>
-            <p>⚠️ <b>Cuidado:</b> Uma irregularidade encontrada anula todo o certame!</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    st.write("")
-    if st.button("🚀 INICIAR AUDITORIA"):
-        preparar_tabuleiro()
-        st.rerun()
-
-# TELA DO JOGO ATIVO
+    # TELA DE START ESTILIZADA
+    st.markdown("<h1 style='text-align: center;'>🕵️ Licitas-Minado Pro</h1>", unsafe_allow_html=True)
+    col_l, col_c, col_r = st.columns([1,2,1])
+    with col_c:
+        st.info("🎯 **Objetivo:** Analisar 25 pastas de um processo licitatório e encontrar os princípios da Lei 14.133/21.")
+        st.warning("🚨 **Risco:** O Campo está minado com irregularidades. Um erro anula sua auditoria!")
+        if st.button("🚀 INICIAR AUDITORIA PROFISSIONAL"):
+            preparar_tabuleiro()
+            st.rerun()
 else:
-    st.title("🕵️ Auditoria em Andamento")
-
-    # FEEDBACKS (ERROR / SUCCESS / WIN)
-    if st.session_state.get('game_over'):
-        nome_erro = st.session_state.get('erro_fatal', 'Erro')
-        st.markdown(f"""
-            <div class="error-container">
-                <h2>💥 PROCESSO IMPUGNADO!</h2>
-                <p>Irregularidade: <strong>{nome_erro}</strong></p>
-                <small>{ERROS_DETALHES.get(nome_erro, "")}</small>
-            </div>
-        """, unsafe_allow_html=True)
-        if st.button("🔄 Reiniciar e Reembaralhar"):
-            preparar_tabuleiro()
-            st.rerun()
-
-    elif st.session_state.get('ultimo_acerto'):
-        nome_acerto = st.session_state.get('ultimo_acerto')
-        st.markdown(f"""
-            <div class="success-info">
-                <h4>✅ Princípio: {nome_acerto}</h4>
-                <p>{PRINCIPIOS_DETALHES.get(nome_acerto, "")}</p>
-            </div>
-        """, unsafe_allow_html=True)
-
-    if st.session_state.get('vitoria'):
-        st.markdown('<div class="win-container"><h2>🏆 AUDITORIA DE EXCELÊNCIA!</h2><p>Processo 100% íntegro.</p></div>', unsafe_allow_html=True)
-        st.balloons()
-        if st.button("🚀 Novo Certame"):
-            preparar_tabuleiro()
-            st.rerun()
-
-    st.metric("Integridade do Processo", f"{st.session_state.get('score', 0)} / 150 pts")
-
-    # Grid de Pastas
-    st.write("---")
-    for r in range(TAMANHO):
-        cols = st.columns(TAMANHO)
-        for c in range(TAMANHO):
-            item = st.session_state['tabuleiro'][r][c]
-            revelado = st.session_state['revelados'][r][c]
-            
-            if revelado:
-                icon = "🚨" if item in ERROS_DETALHES else ("⚖️" if item in PRINCIPIOS_DETALHES else "📄")
-                cols[c].button(icon, key=f"r{r}c{c}", disabled=True)
-            else:
-                if cols[c].button("📁", key=f"b{r}c{c}", disabled=st.session_state.get('game_over') or st.session_state.get('vitoria')):
-                    clicar_casa(r, c)
-                    st.rerun()
-
-    if st.sidebar.button("⚙️ Reset Geral (Voltar ao Início)"):
-        st.session_state.clear()
-        st.rerun()
+    # Cabeçalho com Placar Estilizado
+    st.markdown("<h2 style='text-align: center; color: #333;'>📁 Painel de Auditoria Digital</h2>", unsafe_allow_html=True)
+    
+    c_score, c_meta = st.columns(2)
+    c_score.metric("📊 Integridade", f"{st.session_state['score']} pts")
+    c_meta.progress(min(st.session_state['score'] / 150, 1.0), text
