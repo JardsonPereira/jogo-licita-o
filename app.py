@@ -20,10 +20,13 @@ st.markdown("""
         background-color: #ffc107; color: black; padding: 25px; border-radius: 15px;
         text-align: center; margin-bottom: 20px; font-weight: bold;
     }
+    .start-screen {
+        text-align: center; padding: 50px; background-color: #f0f2f6; border-radius: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Definições de Conteúdo Educativo (Expandido)
+# 3. Definições de Conteúdo Educativo
 TAMANHO = 5
 
 ERROS_DETALHES = {
@@ -54,14 +57,12 @@ PRINCIPIOS_DETALHES = {
 # 4. Função para Iniciar/Reiniciar e Embaralhar
 def preparar_tabuleiro():
     bombas = list(ERROS_DETALHES.keys())
-    # Sorteia uma quantidade de princípios para caber no tabuleiro mantendo o desafio
     principios_sorteados = random.sample(list(PRINCIPIOS_DETALHES.keys()), 10)
     
     conteudo = principios_sorteados + bombas
     while len(conteudo) < TAMANHO * TAMANHO:
         conteudo.append("Documento OK")
     
-    # Embaralhamento garantido
     random.shuffle(conteudo)
     
     st.session_state['tabuleiro'] = [conteudo[i:i+TAMANHO] for i in range(0, len(conteudo), TAMANHO)]
@@ -71,16 +72,10 @@ def preparar_tabuleiro():
     st.session_state['vitoria'] = False
     st.session_state['ultimo_acerto'] = ""
     st.session_state['erro_fatal'] = ""
-
-# Inicialização na primeira carga
-if 'tabuleiro' not in st.session_state:
-    preparar_tabuleiro()
+    st.session_state['jogo_iniciado'] = True
 
 # 5. Lógica de Clique
 def clicar_casa(r, c):
-    if st.session_state.get('game_over') or st.session_state.get('vitoria'):
-        return
-    
     item = st.session_state['tabuleiro'][r][c]
     st.session_state['revelados'][r][c] = True
     
@@ -95,59 +90,80 @@ def clicar_casa(r, c):
         st.session_state['score'] += 5
         st.session_state['ultimo_acerto'] = ""
     
-    if st.session_state['score'] >= 150: # Aumentei a meta para 150 pela maior gama de princípios
+    if st.session_state['score'] >= 150:
         st.session_state['vitoria'] = True
 
-# 6. Interface do Usuário
-st.title("🕵️ Licitas-Minado: Auditoria")
-st.write("Analise o processo. Encontre os princípios da Lei 14.133/21 e evite as ilegalidades!")
+# --- FLUXO PRINCIPAL DO APP ---
 
-# FEEDBACKS (ERROR / SUCCESS / WIN)
-if st.session_state.get('game_over'):
-    nome_erro = st.session_state.get('erro_fatal', 'Erro')
-    st.markdown(f"""
-        <div class="error-container">
-            <h2>💥 PROCESSO IMPUGNADO!</h2>
-            <p>Irregularidade: <strong>{nome_erro}</strong></p>
-            <small>{ERROS_DETALHES.get(nome_erro, "")}</small>
+# TELA DE INÍCIO
+if 'jogo_iniciado' not in st.session_state:
+    st.markdown("""
+        <div class="start-screen">
+            <h1>🕵️ Bem-vindo ao Licitas-Minado</h1>
+            <p style="font-size: 1.2em;">Você assume o papel de um <b>Auditor de Controle Interno</b>.</p>
+            <p>Sua missão é validar as pastas do processo licitatório encontrando princípios fundamentais.</p>
+            <hr>
+            <p>⚠️ <b>Cuidado:</b> Uma irregularidade encontrada anula todo o certame!</p>
         </div>
     """, unsafe_allow_html=True)
-    if st.button("🔄 Reiniciar e Embaralhar"):
+    
+    st.write("")
+    if st.button("🚀 INICIAR AUDITORIA"):
         preparar_tabuleiro()
         st.rerun()
 
-elif st.session_state.get('ultimo_acerto'):
-    nome_acerto = st.session_state.get('ultimo_acerto')
-    st.markdown(f"""
-        <div class="success-info">
-            <h4>✅ Princípio: {nome_acerto}</h4>
-            <p>{PRINCIPIOS_DETALHES.get(nome_acerto, "")}</p>
-        </div>
-    """, unsafe_allow_html=True)
+# TELA DO JOGO ATIVO
+else:
+    st.title("🕵️ Auditoria em Andamento")
 
-if st.session_state.get('vitoria'):
-    st.markdown('<div class="win-container"><h2>🏆 AUDITORIA DE EXCELÊNCIA!</h2><p>Processo 100% íntegro.</p></div>', unsafe_allow_html=True)
-    st.balloons()
-    if st.button("🚀 Novo Certame"):
-        preparar_tabuleiro()
+    # FEEDBACKS (ERROR / SUCCESS / WIN)
+    if st.session_state.get('game_over'):
+        nome_erro = st.session_state.get('erro_fatal', 'Erro')
+        st.markdown(f"""
+            <div class="error-container">
+                <h2>💥 PROCESSO IMPUGNADO!</h2>
+                <p>Irregularidade: <strong>{nome_erro}</strong></p>
+                <small>{ERROS_DETALHES.get(nome_erro, "")}</small>
+            </div>
+        """, unsafe_allow_html=True)
+        if st.button("🔄 Reiniciar e Reembaralhar"):
+            preparar_tabuleiro()
+            st.rerun()
+
+    elif st.session_state.get('ultimo_acerto'):
+        nome_acerto = st.session_state.get('ultimo_acerto')
+        st.markdown(f"""
+            <div class="success-info">
+                <h4>✅ Princípio: {nome_acerto}</h4>
+                <p>{PRINCIPIOS_DETALHES.get(nome_acerto, "")}</p>
+            </div>
+        """, unsafe_allow_html=True)
+
+    if st.session_state.get('vitoria'):
+        st.markdown('<div class="win-container"><h2>🏆 AUDITORIA DE EXCELÊNCIA!</h2><p>Processo 100% íntegro.</p></div>', unsafe_allow_html=True)
+        st.balloons()
+        if st.button("🚀 Novo Certame"):
+            preparar_tabuleiro()
+            st.rerun()
+
+    st.metric("Integridade do Processo", f"{st.session_state.get('score', 0)} / 150 pts")
+
+    # Grid de Pastas
+    st.write("---")
+    for r in range(TAMANHO):
+        cols = st.columns(TAMANHO)
+        for c in range(TAMANHO):
+            item = st.session_state['tabuleiro'][r][c]
+            revelado = st.session_state['revelados'][r][c]
+            
+            if revelado:
+                icon = "🚨" if item in ERROS_DETALHES else ("⚖️" if item in PRINCIPIOS_DETALHES else "📄")
+                cols[c].button(icon, key=f"r{r}c{c}", disabled=True)
+            else:
+                if cols[c].button("📁", key=f"b{r}c{c}", disabled=st.session_state.get('game_over') or st.session_state.get('vitoria')):
+                    clicar_casa(r, c)
+                    st.rerun()
+
+    if st.sidebar.button("⚙️ Reset Geral (Voltar ao Início)"):
+        st.session_state.clear()
         st.rerun()
-
-st.metric("Integridade do Processo", f"{st.session_state.get('score', 0)} / 150 pts")
-
-# 7. Grid de Pastas
-st.write("---")
-for r in range(TAMANHO):
-    cols = st.columns(TAMANHO)
-    for c in range(TAMANHO):
-        item = st.session_state['tabuleiro'][r][c]
-        revelado = st.session_state['revelados'][r][c]
-        
-        if revelado:
-            icon = "🚨" if item in ERROS_DETALHES else ("⚖️" if item in PRINCIPIOS_DETALHES else "📄")
-            cols[c].button(icon, key=f"r{r}c{c}", disabled=True)
-        else:
-            if cols[c].button("📁", key=f"b{r}c{c}", disabled=st.session_state.get('game_over') or st.session_state.get('vitoria')):
-                clicar_casa(r, c)
-                st.rerun()
-
-st.info("💡 Foram adicionados novos princípios como Segregação de Funções e Planejamento. Boa sorte, Auditor!")
