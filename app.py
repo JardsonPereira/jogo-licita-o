@@ -1,13 +1,12 @@
 import streamlit as st
 import random
 
-# 1. Configuração da Página e Favicon
+# 1. Configuração da Página
 st.set_page_config(page_title="Licitas-Minado Pro", page_icon="⚖️", layout="wide")
 
 # 2. CSS Avançado para Interatividade
 st.markdown("""
     <style>
-    /* Estilização dos botões/pastas */
     .stButton>button {
         width: 100%;
         height: 4.5em;
@@ -22,27 +21,19 @@ st.markdown("""
         transform: translateY(-3px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
-    
-    /* Banners de feedback */
     .status-card {
         padding: 20px;
         border-radius: 15px;
         margin-bottom: 20px;
         text-align: center;
-        animation: fadeIn 0.5s ease-in;
     }
     .error-bg { background-color: #ffebee; border: 2px solid #ff1744; color: #b71c1c; }
     .success-bg { background-color: #e8f5e9; border: 2px solid #2e7d32; color: #1b5e20; }
     .win-bg { background-color: #fff9c4; border: 2px solid #fbc02d; color: #f57f17; }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Definições de Conteúdo (Mantidas conforme solicitado)
+# 3. Definições de Conteúdo
 TAMANHO = 5
 ERROS_DETALHES = {
     "Superfaturamento": "Preços fixados acima do valor de mercado para desviar recursos.",
@@ -69,7 +60,7 @@ PRINCIPIOS_DETALHES = {
     "Julgamento Objetivo": "A escolha do vencedor deve seguir critérios claros e sem subjetividade."
 }
 
-# 4. Lógica de Inicialização
+# 4. Função de Inicialização
 def preparar_tabuleiro():
     bombas = list(ERROS_DETALHES.keys())
     principios_sorteados = random.sample(list(PRINCIPIOS_DETALHES.keys()), 10)
@@ -89,6 +80,9 @@ def preparar_tabuleiro():
 
 # 5. Lógica de Clique
 def clicar_casa(r, c):
+    if st.session_state.get('game_over') or st.session_state.get('vitoria'):
+        return
+    
     item = st.session_state['tabuleiro'][r][c]
     st.session_state['revelados'][r][c] = True
     
@@ -108,19 +102,77 @@ def clicar_casa(r, c):
 # --- FLUXO DE INTERFACE ---
 
 if 'jogo_iniciado' not in st.session_state:
-    # TELA DE START ESTILIZADA
     st.markdown("<h1 style='text-align: center;'>🕵️ Licitas-Minado Pro</h1>", unsafe_allow_html=True)
     col_l, col_c, col_r = st.columns([1,2,1])
     with col_c:
-        st.info("🎯 **Objetivo:** Analisar 25 pastas de um processo licitatório e encontrar os princípios da Lei 14.133/21.")
-        st.warning("🚨 **Risco:** O Campo está minado com irregularidades. Um erro anula sua auditoria!")
+        st.info("🎯 **Objetivo:** Analisar 25 pastas e encontrar os princípios da Nova Lei de Licitações.")
+        st.warning("🚨 **Risco:** O campo contém irregularidades. Um erro anula sua auditoria!")
         if st.button("🚀 INICIAR AUDITORIA PROFISSIONAL"):
             preparar_tabuleiro()
             st.rerun()
 else:
-    # Cabeçalho com Placar Estilizado
     st.markdown("<h2 style='text-align: center; color: #333;'>📁 Painel de Auditoria Digital</h2>", unsafe_allow_html=True)
     
+    # Placar e Barra de Progresso (CORRIGIDA)
+    pontuacao = st.session_state.get('score', 0)
     c_score, c_meta = st.columns(2)
-    c_score.metric("📊 Integridade", f"{st.session_state['score']} pts")
-    c_meta.progress(min(st.session_state['score'] / 150, 1.0), text
+    c_score.metric("📊 Integridade", f"{pontuacao} pts")
+    
+    # AQUI ESTAVA O ERRO DE SINTAXE - CORRIGIDO ABAIXO:
+    progresso = min(pontuacao / 150, 1.0)
+    c_meta.progress(progresso, text="Progresso da Homologação")
+
+    # Banners de Feedback
+    if st.session_state.get('game_over'):
+        erro = st.session_state.get('erro_fatal', 'Erro Desconhecido')
+        st.markdown(f"""<div class="status-card error-bg">
+            <h3>💥 IMPUGNAÇÃO: {erro}</h3>
+            <p>{ERROS_DETALHES.get(erro, "Irregularidade grave detectada.")}</p>
+            </div>""", unsafe_allow_html=True)
+        if st.button("🔄 Reiniciar Novo Processo"):
+            preparar_tabuleiro()
+            st.rerun()
+
+    elif st.session_state.get('vitoria'):
+        st.markdown("""<div class="status-card win-bg">
+            <h3>🏆 CERTAME HOMOLOGADO!</h3>
+            <p>Auditoria concluída com 100% de integridade.</p>
+            </div>""", unsafe_allow_html=True)
+        st.balloons()
+        if st.button("🏗️ Iniciar Outra Licitação"):
+            preparar_tabuleiro()
+            st.rerun()
+
+    elif st.session_state.get('ultimo_acerto'):
+        acerto = st.session_state.get('ultimo_acerto')
+        st.markdown(f"""<div class="status-card success-bg">
+            <strong>✅ Princípio Validado: {acerto}</strong> - {PRINCIPIOS_DETALHES.get(acerto, "")}
+            </div>""", unsafe_allow_html=True)
+
+    # Grid de Pastas
+    with st.container():
+        for r in range(TAMANHO):
+            cols = st.columns(TAMANHO)
+            for c in range(TAMANHO):
+                item = st.session_state['tabuleiro'][r][c]
+                revelado = st.session_state['revelados'][r][c]
+                
+                if revelado:
+                    if item in ERROS_DETALHES:
+                        cols[c].markdown("<h1 style='text-align:center; margin:0;'>🚨</h1>", unsafe_allow_html=True)
+                    elif item in PRINCIPIOS_DETALHES:
+                        cols[c].markdown("<h1 style='text-align:center; margin:0;'>⚖️</h1>", unsafe_allow_html=True)
+                    else:
+                        cols[c].markdown("<h1 style='text-align:center; margin:0;'>📄</h1>", unsafe_allow_html=True)
+                else:
+                    if cols[c].button("📁", key=f"b{r}c{c}", disabled=st.session_state.get('game_over') or st.session_state.get('vitoria')):
+                        clicar_casa(r, c)
+                        st.rerun()
+
+    # Barra Lateral
+    with st.sidebar:
+        st.title("📖 Suporte")
+        st.info("⚖️ Princípios: 20 pts\n\n📄 Docs: 5 pts")
+        if st.button("⏹️ Voltar ao Início"):
+            st.session_state.clear()
+            st.rerun()
