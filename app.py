@@ -2,27 +2,33 @@ import streamlit as st
 import random
 
 # Configuração da página
-st.set_page_config(page_title="Licitas-Minado", page_icon="🕵️")
+st.set_page_config(page_title="Licitas-Minado: Auditoria", page_icon="🕵️")
 
-# --- ESTILO CUSTOMIZADO ---
+# --- ESTILO ---
 st.markdown("""
     <style>
-    .stButton>button { width: 100%; height: 3em; font-size: 20px; }
-    .status-box { padding: 20px; border-radius: 10px; text-align: center; margin-bottom: 20px; }
+    .stButton>button { width: 100%; height: 3.5em; font-size: 18px; }
+    .error-container { background-color: #ff4b4b; color: white; padding: 20px; border-radius: 10px; text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- CONFIGURAÇÕES DO JOGO ---
+# --- CONFIGURAÇÕES ---
 TAMANHO = 5
-PRINCIPIOS = ["Legalidade", "Impessoalidade", "Moralidade", "Publicidade", "Eficiência", "Isonomia", "Probidade", "Planejamento"]
-BOMBAS = ["Superfaturamento", "Direcionamento", "Fraude", "Corrupção", "Cartel"]
+# Dicionário de erros para dar contexto educativo
+ERROS_DETALHES = {
+    "Superfaturamento": "Preço fixado muito acima do valor de mercado para desviar verba.",
+    "Direcionamento": "Edital feito com exigências que só uma empresa específica consegue cumprir.",
+    "Fraude": "Falsificação de documentos ou selos para ganhar a disputa ilegalmente.",
+    "Corrupção": "Oferecimento de vantagem indevida a agente público.",
+    "Cartel": "Acordo entre empresas concorrentes para fixar preços e dividir o mercado."
+}
 
-# --- INICIALIZAÇÃO DO ESTADO ---
+PRINCIPIOS = ["Legalidade", "Impessoalidade", "Moralidade", "Publicidade", "Eficiência", "Isonomia", "Probidade"]
+
+# --- ESTADO DO JOGO ---
 if 'tabuleiro' not in st.session_state:
-    # Criar tabuleiro misto
-    conteudo = PRINCIPIOS + BOMBAS
-    random.shuffle(conteudo)
-    # Preencher o resto com "Documento Ok"
+    bombas = list(ERROS_DETALHES.keys())
+    conteudo = PRINCIPIOS + bombas
     while len(conteudo) < TAMANHO * TAMANHO:
         conteudo.append("Documento OK")
     random.shuffle(conteudo)
@@ -31,73 +37,57 @@ if 'tabuleiro' not in st.session_state:
     st.session_state.revelados = [[False for _ in range(TAMANHO)] for _ in range(TAMANHO)]
     st.session_state.score = 0
     st.session_state.game_over = False
-    st.session_state.vitoria = False
+    st.session_state.erro_fatal = ""
 
 def clicar_casa(r, c):
-    if st.session_state.game_over or st.session_state.vitoria:
-        return
-    
-    st.session_state.revelados[r][c] = True
     item = st.session_state.tabuleiro[r][c]
+    st.session_state.revelados[r][c] = True
     
-    if item in BOMBAS:
+    if item in ERROS_DETALHES:
         st.session_state.game_over = True
+        st.session_state.erro_fatal = item
     elif item in PRINCIPIOS:
-        st.session_state.score += 10
+        st.session_state.score += 15
     else:
-        st.session_state.score += 2
-
-    # Checar vitória (se todos os princípios foram achados ou todas as casas seguras limpas)
-    if st.session_state.score >= 100: # Exemplo de meta
-        st.session_state.vitoria = True
+        st.session_state.score += 5
 
 # --- INTERFACE ---
-st.title("🕵️ Licitas-Minado: Auditoria de Campo")
-st.write("Clique nas pastas para encontrar os **Princípios da Administração**. Evite as **Irregularidades**!")
+st.title("🕵️ Licitas-Minado")
 
-# Placar e Status
-col_score, col_status = st.columns(2)
-col_score.metric("Pontos de Integridade", st.session_state.score)
-
+# Exibição de Erro Fatal (Game Over)
 if st.session_state.game_over:
-    st.error("💥 PROCESSO CANCELADO! Você clicou em uma Irregularidade Gravíssima.")
-    if st.button("Reiniciar Auditoria"):
-        st.session_state.clear()
-        st.rerun()
-elif st.session_state.vitoria:
-    st.balloons()
-    st.success("🏆 EXCELÊNCIA EM COMPLIANCE! Você limpou o processo com sucesso.")
-    if st.button("Nova Licitação"):
+    st.markdown(f"""
+        <div class="error-container">
+            <h2>💥 PROCESSO IMPUGNADO!</h2>
+            <p>Você encontrou uma irregularidade: <strong>{st.session_state.erro_fatal}</strong></p>
+            <small>{ERROS_DETALHES[st.session_state.erro_fatal]}</small>
+        </div>
+    """, unsafe_allow_html=True)
+    if st.button("🔄 Reiniciar Auditoria"):
         st.session_state.clear()
         st.rerun()
 
-st.divider()
+# Placar
+st.metric("Pontos de Integridade", st.session_state.score)
 
 # --- RENDERIZAÇÃO DO TABULEIRO ---
 for r in range(TAMANHO):
     cols = st.columns(TAMANHO)
     for c in range(TAMANHO):
-        if st.session_state.revelados[r][c]:
-            item = st.session_state.tabuleiro[r][c]
-            # Estilização baseada no tipo de item revelado
-            if item in BOMBAS:
-                cols[c].button(f"💣", key=f"{r}-{c}", disabled=True)
+        item = st.session_state.tabuleiro[r][c]
+        revelado = st.session_state.revelados[r][c]
+        
+        if revelado:
+            if item in ERROS_DETALHES:
+                cols[c].button("🚨", key=f"b-{r}-{c}", disabled=True)
             elif item in PRINCIPIOS:
-                cols[c].button(f"⚖️", key=f"{r}-{c}", help=item, disabled=True)
-                st.toast(f"Princípio Encontrado: {item}")
+                cols[c].button("⚖️", key=f"p-{r}-{c}", help=item, disabled=True)
             else:
-                cols[c].button(f"📄", key=f"{r}-{c}", disabled=True)
+                cols[c].button("📄", key=f"d-{r}-{c}", disabled=True)
         else:
-            # Casa ainda escondida
-            if cols[c].button("📁", key=f"{r}-{c}"):
+            if cols[c].button("📁", key=f"f-{r}-{c}", disabled=st.session_state.game_over):
                 clicar_casa(r, c)
                 st.rerun()
 
-# Legenda e Dicas
-with st.expander("📖 Manual do Auditor"):
-    st.write("""
-    - **📁 Pasta Fechada**: Documento ainda não analisado.
-    - **⚖️ Balança**: Princípio fundamental encontrado (+10 pontos).
-    - **📄 Papel**: Trâmite legal comum (+2 pontos).
-    - **💣 Bomba**: Irregularidade (Fim de jogo!).
-    """)
+st.divider()
+st.info("Objetivo: Encontre os princípios (⚖️) e documentos (📄). Evite as irregularidades (🚨)!")
