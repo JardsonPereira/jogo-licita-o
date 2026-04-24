@@ -4,141 +4,109 @@ import random
 # 1. Configuração da Página
 st.set_page_config(page_title="Licitas-Minado: Auditoria", page_icon="🕵️", layout="centered")
 
-# 2. Estilo CSS para o Visual do Jogo
+# 2. Estilo CSS
 st.markdown("""
     <style>
-    .stButton>button { 
-        width: 100%; 
-        height: 3.5em; 
-        font-size: 20px; 
-        font-weight: bold;
-    }
+    .stButton>button { width: 100%; height: 3.5em; font-size: 20px; font-weight: bold; }
     .error-container { 
-        background-color: #ff4b4b; 
-        color: white; 
-        padding: 25px; 
-        border-radius: 15px; 
-        text-align: center; 
-        margin-bottom: 20px;
-        border: 2px solid #b22222;
+        background-color: #ff4b4b; color: white; padding: 25px; border-radius: 15px; 
+        text-align: center; margin-bottom: 20px; border: 2px solid #b22222; 
     }
     .success-container {
-        background-color: #28a745;
-        color: white;
-        padding: 25px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 20px;
+        background-color: #28a745; color: white; padding: 25px; border-radius: 15px; 
+        text-align: center; margin-bottom: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Definições de Conteúdo
+# 3. Definições
 TAMANHO = 5
 ERROS_DETALHES = {
-    "Superfaturamento": "Os preços foram fixados muito acima do valor de mercado para desviar recursos públicos.",
-    "Direcionamento": "O edital continha cláusulas restritivas que favoreciam apenas um licitante específico.",
-    "Fraude": "Houve falsificação de documentos ou selos para burlar a legalidade do certame.",
-    "Corrupção": "Identificou-se o oferecimento de vantagem indevida a agentes públicos envolvidos.",
-    "Cartel": "Empresas concorrentes combinaram preços previamente para eliminar a disputa real."
+    "Superfaturamento": "Preços fixados acima do valor de mercado para desviar recursos.",
+    "Direcionamento": "Edital com cláusulas que favorecem apenas um licitante.",
+    "Fraude": "Falsificação de documentos ou selos.",
+    "Corrupção": "Vantagem indevida a agentes públicos.",
+    "Cartel": "Acordo entre empresas para fixar preços."
 }
-
 PRINCIPIOS = ["Legalidade", "Impessoalidade", "Moralidade", "Publicidade", "Eficiência", "Isonomia", "Probidade"]
 
-# 4. Inicialização do Estado do Jogo (session_state)
+# 4. Inicialização Segura do Estado
 if 'tabuleiro' not in st.session_state:
     bombas = list(ERROS_DETALHES.keys())
     conteudo = PRINCIPIOS + bombas
-    # Preenche o restante com documentos comuns
     while len(conteudo) < TAMANHO * TAMANHO:
         conteudo.append("Documento OK")
-    
     random.shuffle(conteudo)
     
-    # Organiza em matriz 5x5
-    st.session_state.tabuleiro = [conteudo[i:i+TAMANHO] for i in range(0, len(conteudo), TAMANHO)]
-    st.session_state.revelados = [[False for _ in range(TAMANHO)] for _ in range(TAMANHO)]
-    st.session_state.score = 0
-    st.session_state.game_over = False
-    st.session_state.erro_fatal = ""
-    st.session_state.vitoria = False
+    st.session_state['tabuleiro'] = [conteudo[i:i+TAMANHO] for i in range(0, len(conteudo), TAMANHO)]
+    st.session_state['revelados'] = [[False for _ in range(TAMANHO)] for _ in range(TAMANHO)]
+    st.session_state['score'] = 0
+    st.session_state['game_over'] = False
+    st.session_state['vitoria'] = False
+    st.session_state['erro_fatal'] = ""
 
-# 5. Lógica ao clicar na Pasta
+# 5. Lógica de Clique
 def clicar_casa(r, c):
-    if st.session_state.game_over or st.session_state.vitoria:
+    if st.session_state['game_over'] or st.session_state['vitoria']:
         return
     
-    item = st.session_state.tabuleiro[r][c]
-    st.session_state.revelados[r][c] = True
+    item = st.session_state['tabuleiro'][r][c]
+    st.session_state['revelados'][r][c] = True
     
     if item in ERROS_DETALHES:
-        st.session_state.game_over = True
-        st.session_state.erro_fatal = item
+        st.session_state['game_over'] = True
+        st.session_state['erro_fatal'] = item
     elif item in PRINCIPIOS:
-        st.session_state.score += 20
+        st.session_state['score'] += 20
     else:
-        st.session_state.score += 5
+        st.session_state['score'] += 5
     
-    # Condição de Vitória (exemplo: atingir 100 pontos)
-    if st.session_state.score >= 100:
-        st.session_state.vitoria = True
+    if st.session_state['score'] >= 100:
+        st.session_state['vitoria'] = True
 
-# 6. Interface do Usuário (UI)
+# 6. Interface
 st.title("🕵️ Licitas-Minado: O Jogo")
-st.write("Analise as pastas do processo licitatório. Acumule **Pontos de Integridade** encontrando princípios e documentos válidos, mas cuidado com as **Irregularidades**!")
 
-# Painel de Game Over ou Vitória
-if st.session_state.game_over:
-    # Correção do erro de f-string:
-    detalhe = ERROS_DETALHES.get(st.session_state.erro_fatal, "Irregularidade não identificada.")
+# Verificação de Game Over com proteção contra AttributeError
+if st.session_state.get('game_over'):
+    nome_erro = st.session_state.get('erro_fatal', 'Erro desconhecido')
+    detalhe = ERROS_DETALHES.get(nome_erro, "Irregularidade identificada no processo.")
+    
     st.markdown(f"""
         <div class="error-container">
             <h2>💥 PROCESSO IMPUGNADO!</h2>
-            <p>Você encontrou: <strong>{st.session_state.erro_fatal}</strong></p>
+            <p>Você encontrou: <strong>{nome_erro}</strong></p>
             <p style="font-size: 14px;">{detalhe}</p>
         </div>
     """, unsafe_allow_html=True)
+    
     if st.button("🔄 Reiniciar Nova Auditoria"):
-        st.session_state.clear()
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.rerun()
 
-elif st.session_state.vitoria:
-    st.markdown("""
-        <div class="success-container">
-            <h2>🏆 COMPLIANCE APROVADO!</h2>
-            <p>Você atingiu o nível máximo de integridade no processo.</p>
-        </div>
-    """, unsafe_allow_html=True)
+elif st.session_state.get('vitoria'):
+    st.markdown('<div class="success-container"><h2>🏆 COMPLIANCE APROVADO!</h2></div>', unsafe_allow_html=True)
     st.balloons()
     if st.button("🚀 Iniciar Outro Pregão"):
-        st.session_state.clear()
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
         st.rerun()
 
-# Exibição do Score
-st.metric("Pontos de Integridade", f"{st.session_state.score} pts")
-
+st.metric("Integridade", f"{st.session_state.get('score', 0)} pts")
 st.divider()
 
-# 7. Renderização da Grade de Pastas
+# 7. Grid
 for r in range(TAMANHO):
     cols = st.columns(TAMANHO)
     for c in range(TAMANHO):
-        item = st.session_state.tabuleiro[r][c]
-        revelado = st.session_state.revelados[r][c]
+        item = st.session_state['tabuleiro'][r][c]
+        revelado = st.session_state['revelados'][r][c]
         
         if revelado:
-            if item in ERROS_DETALHES:
-                cols[c].button("🚨", key=f"btn-{r}-{c}", disabled=True)
-            elif item in PRINCIPIOS:
-                cols[c].button("⚖️", key=f"btn-{r}-{c}", help=f"Princípio da {item}", disabled=True)
-            else:
-                cols[c].button("📄", key=f"btn-{r}-{c}", disabled=True)
+            icon = "🚨" if item in ERROS_DETALHES else ("⚖️" if item in PRINCIPIOS else "📄")
+            cols[c].button(icon, key=f"r{r}c{c}", disabled=True)
         else:
-            # Botão clicável para revelar
-            if cols[c].button("📁", key=f"btn-{r}-{c}", disabled=st.session_state.game_over or st.session_state.vitoria):
+            if cols[c].button("📁", key=f"b{r}c{c}", disabled=st.session_state.get('game_over')):
                 clicar_casa(r, c)
                 st.rerun()
-
-# 8. Rodapé Informativo
-st.divider()
-st.info("💡 **Dica de Auditor:** Princípios (⚖️) valem 20 pontos. Documentos comuns (📄) valem 5 pontos. Sirenes (🚨) encerram o processo!")
